@@ -1,0 +1,366 @@
+# This is the main application configuration
+# Note 1: The Health monitoring application has 5 key components. Each of the components and its subcomponents can
+# be enabled or disabled for initialization based on the physical setup
+# - Event bus: Synchronous Redis event bus used by different services to share registry e.g., Sensor time_series shared
+#   by the sensor handlers using a Publish/Subscribe pattern to the Cloud synchronization and Repository services
+# - BLE Client manager to configure and manager BLE clients to communicate to BLE GATT enabled servers (e.g., Watch)
+# - I2C Client manager to configure and manager I2C clients to communicate to I2C sensors using I2C bus
+# - Cloud Sync manager to configure and manager cloud synchronization services for sensor and security registry
+# - Repository Manager: Different repositories to store sensor time_series, sensor metadata, connection details,
+#   and security registry
+#
+# Note 2: The 'sensor_id' must be unique across the application, following the format:
+# <interface_type>_<client_id>_<sensor_type>, e.g., ble_c1_accelerometer.
+#
+# Note 3: Every sensor must be associated with a 'patient_id'. When mapping
+# a wearable device (e.g., a watch), multiple sensors can share the same patient association.
+#
+# Note 4: BLE and I2C clients have different philosophies:
+# - BLE (Bluetooth Low Energy) relies on connection state (connected/disconnected).
+# - I2C is a serial communication protocol that supports multiple sensors on the same bus,
+#   each with a unique address. It does not maintain a connection state like TCP/IP, Wi-Fi, or Bluetooth.
+#
+# Note 5: Metadata such as Manufacturer, Model, Firmware Version, Hardware Version, Description, and
+# Measurement Units are hard-coded in the source code for each sensor hardware.
+#
+
+app:
+  name: "Remote Patient Monitoring System"  # The name of the app
+  version: "1.0.0"  # Current version of the app
+
+# This is an optional service mainly used during application testing without the Cloud sync using RestAPI
+web_server:
+  is_enabled: true
+  host: "0.0.0.0"
+  port: 5000
+
+# Logging configuration settings
+logging:
+  level: "INFO"  # Set the logging level (e.g., DEBUG, INFO, WARN, ERROR)
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"  # Log format with timestamps
+  handlers:
+    console: true  # Enable console (stream) handler
+    file:
+      is_enabled: true  # Enable file handler
+      path: "logs/health_monitor.log"  # Path to the log file
+      max_size_mb: 10  #  log rotation after reaching max size
+      backup_count: 10  # 10 backup files
+
+# Event bus configuration for Redis
+event_bus:
+  redis:
+    host: "localhost"  # Redis server host
+    port: 6379  # Redis server port
+    db: 0  # Redis database number
+
+# BLE Client Manager settings for managing Bluetooth clients
+ble_client_manager:
+  is_enabled: false  # [Optional, default="True"] Enable BLE client communication in the application
+  auto_reconnect: true  # [Optional, default= True] Enable automatic reconnection if the connection is lost
+  reconnect_interval: 60  # [Optional, default= 60] Time interval (in seconds) between reconnection attempts
+  reconnect_attempts: 3  # [Optional, default= 3] Maximum number of reconnection attempts before giving up
+
+  # Notification timeout as 0 means 'wait forever' for BLE notification
+  notification_timeout: 0  # [Optional, default= 0] Timeout for notifications (in seconds)
+
+  scan_timeout: 30  # [Optional, default= 30] Timeout for scanning Bluetooth devices (in seconds)
+
+  clients:
+    - client_id: "ble_client_1"  # [Mandatory] Unique identifier for this Bluetooth client
+      is_enabled: true  # [Optional, default= True] Whether this client is enabled
+      device_type: "galaxy_watch"  # [Mandatory] Type of device that will be connected to the client
+
+      # At least one of 'device_address' or 'device_name' must be specified.
+      # If both are provided, 'device_address' will take priority during connection attempts
+      device_address: "E4:92:82:86:87:02"  # [Optional, default=None] MAC address (Bluetooth) of the target device
+      device_name: "Galaxy Watch 7"  # [Optional] Name of the target device
+
+      sensors:
+        # Sensor 1
+        - sensor_id: "ble_c1_accelerometer"  # [Mandatory] Sensor ID for the Accelerometer BLE
+          sensor_name: "Accelerometer BLE Sensor"  # [Mandatory] Display-friendly name of the sensor
+          sensor_type: "accelerometer"  # [Mandatory] Type of sensor
+          is_enabled: true  # [Optional, default= True] Whether this sensor is enabled
+          patient_id: "patient_xyz"  # [Mandatory] The patient ID associated with the sensor
+          location: "wrist"  # [Optional, default="unknown"] Physical placement location of the sensor on the body
+
+        # Sensor 2
+        - sensor_id: "ble_c1_ecg"  # [Mandatory] Sensor ID for the ECG BLE
+          sensor_name: "ECG BLE Sensor"  # [Mandatory] Display-friendly name of the sensor
+          sensor_type: "ecg"  # [Mandatory] Type of sensor
+          is_enabled: false  # [Optional, default= True] Whether this sensor is enabled
+          patient_id: "patient_xyz"  # [Mandatory] The patient ID associated with the sensor
+          location: "wrist"  # [Optional, default="unknown"] Physical placement location of the sensor on the body
+
+        # Sensor 3
+        - sensor_id: "ble_c1_heart_rate"  # [Mandatory] Sensor ID for the Heart Rate BLE
+          sensor_name: "Heart Rate BLE Sensor"  # [Mandatory] Display-friendly name of the sensor
+          sensor_type: "heart_rate"  # [Mandatory] Type of sensor
+          is_enabled: true  # [Optional, default= True] Whether this sensor is enabled
+          patient_id: "patient_xyz"  # [Mandatory] The patient ID associated with the sensor
+          location: "wrist"  # [Optional, default="unknown"] Physical placement location of the sensor on the body
+
+        # Sensor 4
+        - sensor_id: "ble_c1_ppg"  # [Mandatory] Sensor ID for the PPG BLE
+          sensor_name: "PPG BLE Sensor"  # [Mandatory] Display-friendly name of the sensor
+          sensor_type: "ppg"  # [Mandatory] Type of sensor
+          is_enabled: false  # [Optional, default= True] Whether this sensor is enabled
+          patient_id: "patient_xyz"  # [Mandatory] The patient ID associated with the sensor
+          location: "wrist" # [Optional, default="unknown"] Physical placement location of the sensor on the body
+
+        # Sensor 5
+        - sensor_id: "ble_c1_spo2"  # [Mandatory] Sensor ID for the SpO2 BLE
+          sensor_name: "SpO2 BLE Sensor"  # [Mandatory] Display-friendly name of the sensor
+          sensor_type: "spo2"  # [Mandatory] Type of sensor
+          is_enabled: false  # [Optional, default= True] Whether this sensor is enabled
+          patient_id: "patient_xyz"  # [Mandatory] The patient ID associated with the sensor
+          location: "wrist"  # [Optional, default="unknown"] Physical placement location of the sensor on the body
+
+        # Sensor 6
+        - sensor_id: "ble_c1_temperature"  # [Mandatory] Sensor ID for the Temperature BLE
+          sensor_name: "Temperature BLE Sensor"  # [Mandatory] Display-friendly name of the sensor
+          sensor_type: "temperature"  # [Mandatory] Type of sensor
+          is_enabled: true  # [Optional, default= True] Whether this sensor is enabled
+          patient_id: "patient_xyz"  # [Mandatory] The patient ID associated with the sensor
+          location: "wrist"  # [Optional, default="unknown"] Physical placement location of the sensor on the body
+
+# I2C Client Manager settings for managing I2C clients
+i2c_client_manager:
+  is_enabled: false  # [Optional, default="True"] Enable I2C client communication in the application
+  clients:
+    - client_id: "i2c_client_1"  # [Mandatory] Unique identifier for this I2C client
+      is_enabled: true  # [Optional, default= True] Whether this client is enabled
+      # Typically, there are 2 or 3 I2C buses available in a device such as Raspberry PI
+      bus_id: 1   # [Mandatory] Unique Bus ID for this I2C client
+
+      # I2C multiplexer is optional to 'multi-drop' many I2C sensors on the same bus
+      # If Multiplexer is not configured, there can only be one sensor in the bus connected directly to Edge GPIO
+      i2c_mux:
+        is_enabled: true # [Optional, default= False] Flag to indicate mux is used
+        address: "0x70" # [Optional] TCA9548A I2C multiplexer address, Mandatory if enabled
+
+      sensors:
+        # Sensor 1
+        - sensor_id: "i2c_c1_environment"  # [Mandatory] Sensor ID for the Environment I2C sensor
+          sensor_name: "Environment I2C Sensor"  # [Mandatory] Display-friendly name of the I2C sensor
+          sensor_type: "environment"  # [Mandatory] Type of sensor
+          is_enabled: true  # [Optional, default= True] Whether this sensor is enabled
+          patient_id: "patient_abc"  # [Mandatory] The patient ID associated with the sensor
+          location: "room" # [Optional, default="unknown"] Physical placement location of the sensor on the body/room
+
+          # As different types of sensors (from different manufacturers) can be connected to the client (multi-drop)
+          device_type: "click_board"  # [Mandatory] Type of device that will be connected to the client
+
+          address: "0x77"  # [Mandatory] I2C address of the sensor
+          poll_interval: 10.0  # [Mandatory] Polling interval (in seconds) for time_series acquisition from the I2C sensor
+
+          # I2C mux has 8 channels (zero-based index) if multiple sensors are configured to the same bus,
+          # using multiplexer is one of the option/topologies others include I2C hub, Breadboard
+          mux_channel_no: 7 # [Optional] The Environment clickboard is connected to Channel 7
+
+        # Sensor 2
+        - sensor_id: "i2c_c1_oximeter"  # [Mandatory] Sensor ID for the Oximeter I2C sensor
+          sensor_name: "Oximeter I2C Sensor"  # [Mandatory] Display-friendly name of the I2C sensor
+          sensor_type: "oximeter"  # [Mandatory] Type of sensor
+          is_enabled: true  # [Optional, default= True] Whether this sensor is enabled
+          patient_id: "patient_abc"  # [Mandatory] The patient ID associated with the sensor
+          location: "finger" # [Optional, default="unknown"] Physical placement location of the sensor on the body/room
+
+          # As different types of sensors (from different manufacturers) can be connected to the client (multi-drop)
+          device_type: "click_board"  # [Mandatory] Type of device that will be connected to the client
+
+          address: "0x57"  # [Mandatory] I2C address of the sensor
+          poll_interval: 1.0  # [Mandatory] Polling interval (in seconds) for time_series acquisition from the I2C sensor
+
+          # I2C mux has 8 channels (zero-based index) if multiple sensors are configured to the same bus,
+          # using multiplexer is one of the option/topologies others include I2C hub, Breadboard
+          mux_channel_no: 3 # [Optional] The Oximeter clickboard is connected to Channel 3
+
+    - client_id: "i2c_client_2"  # [Mandatory] Unique identifier for this I2C client
+      is_enabled: false  # [Optional, default= True] Whether this client is enabled
+      # Typically, there are 2 or 3 I2C buses that are configurable in a device such as Raspberry PI (GPIO 40 pins)
+      bus_id: 3   # [Mandatory] Unique Bus ID for this I2C client
+
+      # Mux is not used, only one sensor is connected to this bus
+
+      sensors:
+        # Sensor 1
+        - sensor_id: "i2c_c2_ecg"  # [Mandatory] Sensor ID for the ECG I2C sensor
+          sensor_name: "ECG I2C Sensor"  # [Mandatory] Display-friendly name of the I2C sensor
+          sensor_type: "ecg"  # [Mandatory] Type of sensor
+          is_enabled: false  # [Optional, default= True] Whether this sensor is enabled
+          patient_id: "patient_abc"  # [Mandatory] The patient ID associated with the sensor
+          location: "various (3 x electrodes)" # [Optional, default="unknown"] Physical placement location of the sensor on the body/room
+
+          # As different types of sensors (from different manufacturers) can be connected to the client (multi-drop)
+          device_type: "click_board"  # [Mandatory] Type of device that will be connected to the client
+
+          address: "0x4D"  # [Mandatory] I2C address of the sensor
+          poll_interval: 0.004  # [Mandatory] Polling interval (in seconds) for time_series acquisition from the I2C sensor
+
+edge_gateway:
+  # edge_gateway data collection is always enabled as this is the heart of the RPMS architecture
+
+  # Periodic schedule of data collection in the Edge Gateway, once data is available, it will be published using
+  # the events. Services such as Repository or Cloud Sync can register for these events
+  # Acceptable values: "{number} {unit}" (e.g., "1 day", "2 weeks")
+  # Supported units: second(s), minute(s), hour(s), day(s), week(s), month(s)
+  telemetry_schedule_interval: "1 day"  # [Mandatory, In seconds] Sync edge gateway telemetry information every day
+  security_schedule_interval: "1 week" # [Mandatory, In seconds] Sync edge gateway security information every week
+  inventory_schedule_interval: "1 month" # [Mandatory, In seconds] Sync edge gateway inventory information every month
+
+# Cloud Manager settings for synchronizing time_series between the sensors, edge gateway and the cloud IoT devices & Azure DT
+cloud_sync_manager:
+  is_enabled: true  # [Optional, default="True"] Enable cloud sync overall
+  azure_iot_hub:
+    host_name: "RPMSIoTHub.azure-devices.net"  # [Mandatory] Azure IoT Hub hostname
+
+    # When generated the certificates, the Common name must match the name of the IoT device created in the
+    # Azure IoT hub. The following shall apply:
+    # 1) The IoT device name will be configured to be the same as the Sensor ID
+    # 2) Each IoT device representing a sensor shall have a certificate
+    # 3) Full path of the folder where IoT device certificates are stored
+    certificate_folder: "/home/pi/rpms/helper/certificates"  # [Mandatory]
+    connection_timeout: 60 # [Optional, default=60] Azure IoT Hub Client connection timeout
+    retry_count: 3 # [Optional, default=3] Retry policy of the Azure IoT Hub Client
+
+  cloud_sensor_sync:
+    is_enabled: false # [Optional, default="True"]
+    sensors:
+      # Sensor 1
+      - sensor_id: "ble_c1_accelerometer"  # [Mandatory] ID of the sensor mapping. It must be created as part of the Client
+        device_type: "galaxy_watch" # [Mandatory] Type of the device to create the specific sync service
+        sensor_type: "accelerometer" # [Mandatory] Type of the sensor to create the specific sync service
+        is_enabled: false # [Optional, default="False"] Enable cloud sync of this sensor
+        sync_options:
+          # Interval in which the synchronization of the sensor data to the cloud happens, if set to 0,
+          # immediately will be sent to the IoT Hub when new sensor data is available
+          sync_interval: 60 # [Optional, default=60 seconds]
+          batch_enabled: false # [Optional, default="False"]
+          # Batch size determines how many sensor data items are accumulated before they are transmitted to the cloud
+          batch_size: 100 # [Optional, default=100] Size of the processed message buffer
+      # Sensor 2
+      - sensor_id: "ble_c1_ecg"  # [Mandatory] ID of the sensor mapping. It must be created as part of the Client
+        device_type: "generic" # [Mandatory] Type of the device to create the specific sync service
+        sensor_type: "ecg" # [Mandatory] Type of the sensor to create the specific sync service
+        is_enabled: false # [Optional, default="False"] Enable cloud sync of this sensor
+        sync_options:
+          # Interval in which the synchronization of the sensor data to the cloud happens, if set to 0,
+          # immediately will be sent to the IoT Hub when new sensor data is available
+          sync_interval: 60 # [Optional, default=60 seconds]
+          batch_enabled: false # [Optional, default="False"]
+          # Batch size determines how many sensor data items are accumulated before they are transmitted to the cloud
+          batch_size: 100 # [Optional, default=100] Size of the processed message buffer
+      # Sensor 3
+      - sensor_id: "ble_c1_heart_rate"  # [Mandatory] ID of the sensor mapping. It must be created as part of the Client
+        device_type: "galaxy_watch" # [Mandatory] Type of the device to create the specific sync service
+        sensor_type: "heart_rate" # [Mandatory] Type of the sensor to create the specific sync service
+        is_enabled: true # [Optional, default="False"] Enable cloud sync of this sensor
+        sync_options:
+          # Interval in which the synchronization of the sensor data to the cloud happens, if set to 0,
+          # immediately will be sent to the IoT Hub when new sensor data is available
+          sync_interval: 60 # [Optional, default=60 seconds]
+          batch_enabled: false # [Optional, default="False"]
+          # Batch size determines how many sensor data items are accumulated before they are transmitted to the cloud
+          batch_size: 100 # [Optional, default=100] Size of the processed message buffer
+      # Sensor 4
+      - sensor_id: "ble_c1_ppg"  # [Mandatory] ID of the sensor mapping. It must be created as part of the Client
+        device_type: "generic" # [Mandatory] Type of the device to create the specific sync service
+        sensor_type: "ppg" # [Mandatory] Type of the sensor to create the specific sync service
+        is_enabled: false # [Optional, default="False"] Enable cloud sync of this sensor
+        sync_options:
+          # Interval in which the synchronization of the sensor data to the cloud happens, if set to 0,
+          # immediately will be sent to the IoT Hub when new sensor data is available
+          sync_interval: 60 # [Optional, default=60 seconds]
+          batch_enabled: false # [Optional, default="False"]
+          # Batch size determines how many sensor data items are accumulated before they are transmitted to the cloud
+          batch_size: 100 # [Optional, default=100] Size of the processed message buffer
+      # Sensor 5
+      - sensor_id: "ble_c1_spo2"  # [Mandatory] ID of the sensor mapping. It must be created as part of the Client
+        device_type: "generic" # [Mandatory] Type of the device to create the specific sync service
+        sensor_type: "spo2" # [Mandatory] Type of the sensor to create the specific sync service
+        is_enabled: false # [Optional, default="False"] Enable cloud sync of this sensor
+        sync_options:
+          # Interval in which the synchronization of the sensor data to the cloud happens, if set to 0,
+          # immediately will be sent to the IoT Hub when new sensor data is available
+          sync_interval: 60 # [Optional, default=60 seconds]
+          batch_enabled: false # [Optional, default="False"]
+          # Batch size determines how many sensor data items are accumulated before they are transmitted to the cloud
+          batch_size: 100 # [Optional, default=100] Size of the processed message buffer
+      # Sensor 6
+      - sensor_id: "ble_c1_temperature"  # [Mandatory] ID of the sensor mapping. It must be created as part of the Client
+        device_type: "generic" # [Mandatory] Type of the device to create the specific sync service
+        sensor_type: "temperature" # [Mandatory] Type of the sensor to create the specific sync service
+        is_enabled: false # [Optional, default="False"] Enable cloud sync of this sensor
+        sync_options:
+          # Interval in which the synchronization of the sensor data to the cloud happens, if set to 0,
+          # immediately will be sent to the IoT Hub when new sensor data is available
+          sync_interval: 60 # [Optional, default=60 seconds]
+          batch_enabled: false # [Optional, default="False"]
+          # Batch size determines how many sensor data items are accumulated before they are transmitted to the cloud
+          batch_size: 100 # [Optional, default=100] Size of the processed message buffer
+      # Sensor 7
+      - sensor_id: "i2c_c1_environment"  # [Mandatory] ID of the sensor mapping. It must be created as part of the Client
+        device_type: "click_board" # [Mandatory] Type of the device to create the specific sync service
+        sensor_type: "environment" # [Mandatory] Type of the sensor to create the specific sync service
+        is_enabled: false # [Optional, default="False"] Enable cloud sync of this sensor
+        sync_options:
+          # Interval in which the synchronization of the sensor data to the cloud happens, if set to 0,
+          # immediately will be sent to the IoT Hub when new sensor data is available
+          sync_interval: 0 # [Optional, default=60 seconds]
+          batch_enabled: false # [Optional, default="False"]
+          # Batch size determines how many sensor data items are accumulated before they are transmitted to the cloud
+          batch_size: 100 # [Optional, default=100] Size of the processed message buffer
+      # Sensor 8
+      - sensor_id: "i2c_c1_oximeter"  # [Mandatory] ID of the sensor mapping. It must be created as part of the Client
+        device_type: "generic" # [Mandatory] Type of the device to create the specific sync service
+        sensor_type: "oximeter" # [Mandatory] Type of the sensor to create the specific sync service
+        is_enabled: false # [Optional, default="False"] Enable cloud sync of this sensor
+        sync_options:
+          # Interval in which the synchronization of the sensor data to the cloud happens, if set to 0,
+          # immediately will be sent to the IoT Hub when new sensor data is available
+          sync_interval: 60 # [Optional, default=60 seconds]
+          batch_enabled: false # [Optional, default="False"]
+          # Batch size determines how many sensor data items are accumulated before they are transmitted to the cloud
+          batch_size: 100 # [Optional, default=100] Size of the processed message buffer
+      # Sensor 9
+      - sensor_id: "i2c_c2_ecg"  # [Mandatory] ID of the sensor mapping. It must be created as part of the Client
+        device_type: "generic" # [Mandatory] Type of the device to create the specific sync service
+        sensor_type: "ecg" # [Mandatory] Type of the sensor to create the specific sync service
+        is_enabled: false # [Optional, default="False"] Enable cloud sync of this sensor
+        sync_options:
+          # Interval in which the synchronization of the sensor data to the cloud happens, if set to 0,
+          # immediately will be sent to the IoT Hub when new sensor data is available
+          sync_interval: 60 # [Optional, default=60 seconds]
+          batch_enabled: false # [Optional, default="False"]
+          # Batch size determines how many sensor data items are accumulated before they are transmitted to the cloud
+          batch_size: 100 # [Optional, default=100] Size of the processed message buffer
+
+  cloud_edge_gateway_sync:
+    is_enabled: true  # [Optional, default="True"] Flag to indicate if the edge gateway is to be synced with the cloud
+
+    # No other config parameters are supported, for edge gateway sync, but this can be extended in the future
+
+# Repository configuration settings
+repository_manager:
+  is_enabled: false  # [Optional, default="True"] Enable the storage of the time_series, registry in the application to the back-end locally
+  general_db:
+    is_enabled: true  # [Optional, default="True"] Enable the general registry storage including Sensor metadata, connection registry, etc.
+    db_path: "time_series/general.db"  # Path to the general database
+
+  security_db:
+    is_enabled: true  # [Optional, default="True"] Enable the security registry storage from the Edge gateway
+    db_path: "time_series/security_data.db"  # Path to the security database
+
+  influx_db:
+    is_enabled: true  # [Optional, default="True"] Enable the time-series (sensor) time_series storage from all the configured sensors
+    url: "http://localhost:8086"  # URL of the InfluxDB instance
+    org: "health_monitoring"  # Organization name for InfluxDB
+    bucket: "sensor_data"  # Bucket name for storing sensor time_series
+    token_file: "config/influx_token.enc"  # Path to the token file for InfluxDB
+    key_file: "config/influx_token.key"  # Path to the key file for InfluxDB
+    salt_file: "config/salt.bin"  # Path to the salt file for encryption
+    write_buffer_size: 100000  # Write buffer size for InfluxDB
+    batch_size: 1000  # Batch size for writing time_series to InfluxDB
+    batch_interval_ms: 5000  # Batch interval in milliseconds
+    max_retries: 5  # Maximum number of retries for InfluxDB operations
