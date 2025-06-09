@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="app_name">HealthMonitoring</string>
+<string name="notification_channel_name">Health Monitoring Service</string>
+<string name="notification_channel_description">Background service for health monitoring</string>
+<string name="notification_title">Health Monitoring Running</string>
+<string name="notification_text">Sending Health data to Raspberry Pi</string>
+</resources>
