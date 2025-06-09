@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Patient Monitoring System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <!-- Chart.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.css">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f8fa;
+            color: #333;
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            background-color: white;
+            font-weight: 600;
+            border-bottom: 1px solid #eaeaea;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .status-connected {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+
+        .status-disconnected {
+            color: var(--danger-color);
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .indicator-active {
+            background-color: var(--success-color);
+        }
+
+        .indicator-inactive {
+            background-color: var(--danger-color);
+        }
+
+        .sensor-row {
+            border-bottom: 1px solid #f3f3f3;
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .sensor-row:last-child {
+            border-bottom: none;
+        }
+
+        .last-updated {
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+        }
+
+        .nav-tabs {
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 30px;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--secondary-color);
+            font-weight: 500;
+            padding: 10px 15px;
+            border-radius: 0;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-tabs .nav-link:hover {
+            border-bottom-color: #dee2e6;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            background-color: transparent;
+            border-bottom-color: var(--primary-color);
+        }
+
+        .btn-refresh {
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 24px;
+        }
+
+        .bg-primary-light {
+            background-color: rgba(13, 110, 253, 0.1);
+            color: var(--primary-color);
+        }
+
+        .bg-success-light {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+        }
+
+        .bg-danger-light {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
+        }
+
+        .bg-info-light {
+            background-color: rgba(23, 162, 184, 0.1);
+            color: var(--info-color);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--secondary-color);
+            margin: 0;
+        }
+
+        .sensor-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            background-color: #f3f3f3;
+            color: var(--dark-color);
+        }
+
+        .metadata-table {
+            width: 100%;
+        }
+
+        .metadata-table td {
+            padding: 8px 0;
+            border-top: 1px solid #f3f3f3;
+        }
+
+        .metadata-table tr:first-child td {
+            border-top: none;
+        }
+
+        .metadata-table td:first-child {
+            font-weight: 500;
+            color: var(--secondary-color);
+            width: 40%;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        .data-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #f3f3f3;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #fafafa;
+        }
+
+        pre.data-json {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+
+        .recent-updates-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .no-data-message {
+            text-align: center;
+            padding: 30px;
+            color: var(--secondary-color);
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .toast-container {
+            z-index: 1060;
+        }
+
+        /* For small screens */
+        @media (max-width: 768px) {
+            .card-header {
+                padding: 10px 15px;
+            }
+
+            .card-body {
+                padding: 15px;
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h2 mb-0">Remote Patient Monitoring System</h1>
+                <div>
+                    <small class="text-muted me-3">Last refreshed: <span id="last-refresh-time">-</span></small>
+                    <button id="refreshButton" class="btn btn-outline-primary btn-refresh">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh Data
+                    </button>
+                </div>
+            </div>
+            <p class="text-muted mt-2">Real-time monitoring of health sensors and devices</p>
+        </header>
+
+        <!-- Main Tabs -->
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">
+                    <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="ble-clients-tab" data-bs-toggle="tab" data-bs-target="#ble-clients" type="button" role="tab" aria-controls="ble-clients" aria-selected="false">
+                    <i class="bi bi-bluetooth me-1"></i> BLE Clients
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="i2c-clients-tab" data-bs-toggle="tab" data-bs-target="#i2c-clients" type="button" role="tab" aria-controls="i2c-clients" aria-selected="false">
+                    <i class="bi bi-cpu me-1"></i> I2C Clients
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sensors-tab" data-bs-toggle="tab" data-bs-target="#sensors" type="button" role="tab" aria-controls="sensors" aria-selected="false">
+                    <i class="bi bi-heart-pulse me-1"></i> Sensors
+                </button>
+            </li>
+            <li class="nav-item ms-auto" role="presentation">
+                <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab" aria-controls="activity" aria-selected="false">
+                    <i class="bi bi-activity me-1"></i> Activity
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabContent">
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+                <div class="row">
+                    <!-- Summary Stats -->
+                    <div class="col-md-6 mb-4">
+                        <h4 class="mb-3">Client Status</h4>
+                        <div class="row">
+                            <!-- BLE Client Stats -->
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-primary-light">
+                                        <i class="bi bi-bluetooth"></i>
+                                    </div>
+                                    <div>
+                                        <p class="stat-value" id="ble-client-count">0</p>
+                                        <p class="stat-label">BLE Clients</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-success-light">
+                                        <i class="bi bi-check-circle"></i>
+                                    </div>
+                                    <div>
+                                        <p class="stat-value" id="ble-connected-count">0</p>
+                                        <p class="stat-label">Connected</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- I2C Client Stats -->
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-info-light">
+                                        <i class="bi bi-cpu"></i>
+                                    </div>
+                                    <div>
+                                        <p class="stat-value" id="i2c-client-count">0</p>
+                                        <p class="stat-label">I2C Clients</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-success-light">
+                                        <i class="bi bi-check-circle"></i>
+                                    </div>
+                                    <div>
+                                        <p class="stat-value" id="i2c-active-count">0</p>
+                                        <p class="stat-label">Active</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sensor Stats -->
+                    <div class="col-md-6 mb-4">
+                        <h4 class="mb-3">Sensor Status</h4>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-primary-light">
+                                        <i class="bi bi-heart-pulse"></i>
+                                    </div>
+                                    <div>
+                                        <p class="stat-value" id="total-sensor-count">0</p>
+                                        <p class="stat-label">Total Sensors</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-success-light">
+                                        <i class="bi bi-activity"></i>
+                                    </div>
+                                    <div>
+                                        <p class="stat-value" id="active-sensor-count">0</p>
+                                        <p class="stat-label">Active</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-danger-light">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                    </div>
+                                    <div>
+                                        <p class="stat-value" id="inactive-sensor-count">0</p>
+                                        <p class="stat-label">Inactive</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon bg-info-light">
+                                        <i class="bi bi-graph-up"></i>
+                                    </div>
+                                    <div>
+                                        <p class="stat-value">
+                                            <span id="ble-sensor-count">0</span>/<span id="i2c-sensor-count">0</span>
+                                        </p>
+                                        <p class="stat-label">BLE/I2C</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Sensor Activity</span>
+                                <div class="text-muted small">Last 24 hours</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="sensorActivityChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Connection Status</span>
+                                <div class="text-muted small">Current state</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="connectionStatusChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- On-Demand Sensors Widget (will be dynamically inserted) -->
+                <!-- This div will be populated by renderTriggerableSensorsWidget() function -->
+
+                <!-- Latest Data Preview -->
+                <div class="row">
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Latest Sensor Data</span>
+                                <button class="btn btn-sm btn-outline-primary" id="viewAllSensorsBtn">View All</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover" id="latestSensorTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Sensor ID</th>
+                                                <th>Type</th>
+                                                <th>Status</th>
+                                                <th>Last Value</th>
+                                                <th>Updated</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td colspan="5" class="text-center">No sensor data available</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BLE Clients Tab -->
+            <div class="tab-pane fade" id="ble-clients" role="tabpanel" aria-labelledby="ble-clients-tab">
+                <div id="ble-clients-container" class="row">
+                    <div class="col-12">
+                        <div class="no-data-message">
+                            <i class="bi bi-bluetooth display-1 text-muted"></i>
+                            <p class="mt-3">Loading BLE clients...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- I2C Clients Tab -->
+            <div class="tab-pane fade" id="i2c-clients" role="tabpanel" aria-labelledby="i2c-clients-tab">
+                <div id="i2c-clients-container" class="row">
+                    <div class="col-12">
+                        <div class="no-data-message">
+                            <i class="bi bi-cpu display-1 text-muted"></i>
+                            <p class="mt-3">Loading I2C clients...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sensors Tab -->
+            <div class="tab-pane fade" id="sensors" role="tabpanel" aria-labelledby="sensors-tab">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="sensorSearchInput" placeholder="Search sensors...">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-end">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                                <button type="button" class="btn btn-outline-primary" data-filter="ble">BLE</button>
+                                <button type="button" class="btn btn-outline-primary" data-filter="i2c">I2C</button>
+                                <button type="button" class="btn btn-outline-success" data-filter="active">Active</button>
+                                <button type="button" class="btn btn-outline-danger" data-filter="inactive">Inactive</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="sensors-container" class="row">
+                    <div class="col-12">
+                        <div class="no-data-message">
+                            <i class="bi bi-heart-pulse display-1 text-muted"></i>
+                            <p class="mt-3">Loading sensors...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Tab -->
+            <div class="tab-pane fade" id="activity" role="tabpanel" aria-labelledby="activity-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <span>Recent System Activity</span>
+                        <button class="btn btn-sm btn-outline-secondary" id="clearActivityBtn">Clear</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="recent-updates-container" id="recent-updates">
+                            <div class="no-data-message">
+                                <i class="bi bi-clock-history display-3 text-muted"></i>
+                                <p class="mt-3">No recent activity</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Sensor Details -->
+    <div class="modal fade" id="sensorDetailsModal" tabindex="-1" aria-labelledby="sensorDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sensorDetailsModalLabel">Sensor Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="sensorDetailTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="sensor-overview-tab" data-bs-toggle="tab" data-bs-target="#sensor-overview" type="button" role="tab">Overview</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sensor-metadata-tab" data-bs-toggle="tab" data-bs-target="#sensor-metadata" type="button" role="tab">Metadata</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sensor-data-tab" data-bs-toggle="tab" data-bs-target="#sensor-data" type="button" role="tab">Latest Data</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content pt-3" id="sensorDetailTabsContent">
+                        <div class="tab-pane fade show active" id="sensor-overview" role="tabpanel">
+                            <div id="sensor-overview-content">Loading...</div>
+                        </div>
+                        <div class="tab-pane fade" id="sensor-metadata" role="tabpanel">
+                            <div id="sensor-metadata-content">
+                                <div class="alert alert-info">No metadata available for this sensor yet.</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="sensor-data" role="tabpanel">
+                            <div id="sensor-data-content">
+                                <div class="alert alert-info">No data available for this sensor yet.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container for notifications -->
+    <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Connect to Socket.IO
+            const socket = io({
+              transports: ['polling'],
+              upgrade: true,
+              reconnection: true
+            });
+            socket.on('connect', function() {
+                console.log('Socket connection established, refreshing data...');
+                fetchClients();
+                fetchSensors();
+                // This will refresh all time_series when the WebSocket connection is established
+            });
+
+            // Add a disconnect handler to notify the user
+            socket.on('disconnect', function() {
+                console.log('Socket connection lost');
+                addRecentUpdate('Connection to server lost. Waiting for reconnection...');
+            });
+
+            // Add a reconnect handler
+            socket.on('reconnect', function() {
+                console.log('Socket reconnected, refreshing data...');
+                addRecentUpdate('Reconnected to server, refreshing data...');
+                fetchClients();
+                fetchSensors();
+            });
+
+            // State storage
+            let bleClients = {};
+            let i2cClients = {};
+            let sensors = {};
+            let recentUpdates = [];
+
+            // Charts
+            let sensorActivityChart = null;
+            let connectionStatusChart = null;
+
+            // Initialize charts
+            initCharts();
+
+            // Load initial time_series
+            fetchClients();
+            fetchSensors();
+
+            // Refresh button
+            document.getElementById('refreshButton').addEventListener('click', function() {
+                fetchClients();
+                fetchSensors();
+                updateCharts();
+            });
+
+            // View all sensors button
+            document.getElementById('viewAllSensorsBtn').addEventListener('click', function() {
+                document.getElementById('sensors-tab').click();
+            });
+
+            // Clear activity button
+            document.getElementById('clearActivityBtn').addEventListener('click', function() {
+                recentUpdates = [];
+                renderRecentUpdates();
+            });
+
+            // Filter buttons in Sensors tab
+            document.querySelectorAll('.btn-group[role="group"] .btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    document.querySelectorAll('.btn-group[role="group"] .btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+
+                    // Add active class to clicked button
+                    this.classList.add('active');
+
+                    // Apply filter
+                    const filter = this.getAttribute('data-filter');
+                    filterSensors(filter);
+                });
+            });
+
+            // Search input in Sensors tab
+            document.getElementById('sensorSearchInput').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const sensorCards = document.querySelectorAll('#sensors-container .card');
+
+                sensorCards.forEach(card => {
+                    const sensorId = card.getAttribute('data-sensor-id').toLowerCase();
+                    const sensorType = card.getAttribute('data-sensor-type').toLowerCase();
+                    const sensorName = card.getAttribute('data-sensor-name')?.toLowerCase() || '';
+
+                    if (sensorId.includes(searchTerm) || sensorType.includes(searchTerm) || sensorName.includes(searchTerm)) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+
+            // Socket.IO event listeners
+            socket.on('client_update', function(data) {
+                console.log('Client update:', data);
+
+                const clientType = data.client_type;
+                const clientId = data.client_id;
+                const state = data.state;
+
+                if (clientType === 'ble') {
+                    bleClients[clientId] = state;
+                    renderBleClients();
+                } else if (clientType === 'i2c') {
+                    i2cClients[clientId] = state;
+                    renderI2cClients();
+                }
+
+                addRecentUpdate(`Client ${clientId} (${clientType}) updated: ${state.message || 'Status changed'}`);
+                updateDashboardCounts();
+                updateLatestSensorTable();
+                updateCharts();
+            });
+
+            socket.on('sensor_data_update', function(data) {
+                console.log('Sensor data update:', data);
+
+                const sensorId = data.sensor_id;
+                const state = data.state;
+
+                if (!sensors[sensorId]) {
+                    sensors[sensorId] = {};
+                }
+
+                // Merge the state
+                sensors[sensorId] = {...sensors[sensorId], ...state};
+
+                // Store sensors in window object for modal functions
+                window.sensors = sensors;
+
+                renderSensors();
+
+                // Check if this is batch time_series
+                const isBatch = state.is_batch || state.batch_data;
+                const batchSize = state.batch_size || (state.batch_data && state.batch_data.timestamps ? state.batch_data.timestamps.length : 0);
+                const batchInfo = isBatch ? ` (batch of ${batchSize} readings)` : '';
+
+                addRecentUpdate(`Sensor ${sensorId} data updated${batchInfo}`);
+                updateDashboardCounts();
+                updateLatestSensorTable();
+
+                // If the sensor details modal is open and showing this sensor, update it
+                const modal = document.getElementById('sensorDetailsModal');
+                if (modal.classList.contains('show')) {
+                    const modalSensorId = modal.getAttribute('data-sensor-id');
+                    if (modalSensorId === sensorId) {
+                        updateSensorDetailsModal(sensorId);
+                    }
+                }
+            });
+
+            socket.on('sensor_status_update', function(data) {
+                console.log('Sensor status update:', data);
+
+                const sensorId = data.sensor_id;
+                const state = data.state;
+
+                if (!sensors[sensorId]) {
+                    sensors[sensorId] = {};
+                }
+
+                // Merge the state
+                sensors[sensorId] = {...sensors[sensorId], ...state};
+
+                // Store sensors in window object for modal functions
+                window.sensors = sensors;
+
+                renderSensors();
+                addRecentUpdate(`Sensor ${sensorId} status changed: ${state.is_active ? 'Active' : 'Inactive'}`);
+                updateDashboardCounts();
+                updateLatestSensorTable();
+                updateCharts();
+
+                // If the sensor details modal is open and showing this sensor, update it
+                const modal = document.getElementById('sensorDetailsModal');
+                if (modal.classList.contains('show')) {
+                    const modalSensorId = modal.getAttribute('data-sensor-id');
+                    if (modalSensorId === sensorId) {
+                        updateSensorDetailsModal(sensorId);
+                    }
+                }
+            });
+
+            socket.on('sensor_metadata_update', function(data) {
+                console.log('Sensor metadata update:', data);
+
+                const sensorId = data.sensor_id;
+                const state = data.state;
+
+                if (!sensors[sensorId]) {
+                    sensors[sensorId] = {};
+                }
+
+                // Merge the state
+                sensors[sensorId] = {...sensors[sensorId], ...state};
+
+                // Store sensors in window object for modal functions
+                window.sensors = sensors;
+
+                renderSensors();
+                addRecentUpdate(`Sensor ${sensorId} metadata updated`);
+
+                // If the sensor details modal is open and showing this sensor, update it
+                const modal = document.getElementById('sensorDetailsModal');
+                if (modal.classList.contains('show')) {
+                    const modalSensorId = modal.getAttribute('data-sensor-id');
+                    if (modalSensorId === sensorId) {
+                        updateSensorDetailsModal(sensorId);
+                    }
+                }
+            });
+
+            socket.on('recent_update', function(data) {
+                addRecentUpdate(data.message);
+            });
+
+            // Add this function to update a timestamp display
+            function updateLastRefreshTime() {
+                const timestamp = new Date().toLocaleTimeString();
+                document.getElementById('last-refresh-time').textContent = timestamp;
+            }
+
+            // Fetch functions
+            function fetchClients() {
+                fetch('/api/clients')
+                    .then(response => response.json())
+                    .then(data => {
+                        bleClients = data.ble || {};
+                        i2cClients = data.i2c || {};
+                        renderBleClients();
+                        renderI2cClients();
+                        updateDashboardCounts();
+                        updateCharts();
+                        updateLastRefreshTime();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching clients:', error);
+                    });
+            }
+
+            function fetchSensors() {
+                fetch('/api/sensors')
+                    .then(response => response.json())
+                    .then(data => {
+                        sensors = data || {};
+                        // Store sensors in window object for modal functions
+                        window.sensors = sensors;
+                        renderSensors();
+                        updateDashboardCounts();
+                        updateLatestSensorTable();
+                        updateLastRefreshTime();
+                        // Also render the triggerable sensors widget
+                        renderTriggerableSensorsWidget();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching sensors:', error);
+                    });
+            }
+
+            // Render functions
+            function renderBleClients() {
+                const container = document.getElementById('ble-clients-container');
+
+                if (Object.keys(bleClients).length === 0) {
+                    container.innerHTML = `
+                        <div class="col-12">
+                            <div class="no-data-message">
+                                <i class="bi bi-bluetooth display-1 text-muted"></i>
+                                <p class="mt-3">No BLE clients available</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                for (const clientId in bleClients) {
+                    const client = bleClients[clientId];
+                    const statusClass = client.is_connected ? 'status-connected' : 'status-disconnected';
+                    const statusText = client.is_connected ? 'Connected' : 'Disconnected';
+                    const statusIcon = client.is_connected ? 'check-circle' : 'x-circle';
+
+                    html += `
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div>
+                                        <i class="bi bi-bluetooth me-2"></i>
+                                        ${client.client_id}
+                                    </div>
+                                    <span class="${statusClass}">
+                                        <i class="bi bi-${statusIcon} me-1"></i>
+                                        ${statusText}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <div class="mb-2">
+                                                <strong>Device Name:</strong><br>
+                                                ${client.device_name || 'N/A'}
+                                            </div>
+                                            <div class="mb-2">
+                                                <strong>Device Type:</strong><br>
+                                                ${client.device_type || 'N/A'}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-2">
+                                                <strong>Device Address:</strong><br>
+                                                ${client.device_address || 'N/A'}
+                                            </div>
+                                            <div>
+                                                <strong>Last Message:</strong><br>
+                                                <small>${client.message || 'N/A'}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <strong>Sensors:</strong>
+                                        <div class="mt-2">
+                    `;
+
+                    if (client.sensors && client.sensors.length > 0) {
+                        html += '<div class="d-flex flex-wrap">';
+                        for (const sensorId of client.sensors) {
+                            const sensor = sensors[sensorId] || {};
+                            const sensorStatusClass = sensor.is_active !== false ? 'bg-success-light' : 'bg-danger-light';
+
+                            html += `
+                                <div class="sensor-badge ${sensorStatusClass}" onclick="showSensorDetails('${sensorId}')" style="cursor: pointer;">
+                                    ${sensorId.split('_').pop()}
+                                    <i class="bi bi-info-circle ms-1" style="font-size: 10px;"></i>
+                                </div>
+                            `;
+                        }
+                        html += '</div>';
+                    } else {
+                        html += '<p class="text-muted">No sensors connected</p>';
+                    }
+
+                    html += `
+                                        </div>
+                                    </div>
+                                    ${client.last_update ? `<div class="last-updated mt-3">Last updated: ${new Date(client.last_update * 1000).toLocaleString()}</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = html;
+            }
+
+            function renderI2cClients() {
+                const container = document.getElementById('i2c-clients-container');
+
+                if (Object.keys(i2cClients).length === 0) {
+                    container.innerHTML = `
+                        <div class="col-12">
+                            <div class="no-data-message">
+                                <i class="bi bi-cpu display-1 text-muted"></i>
+                                <p class="mt-3">No I2C clients available</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                for (const clientId in i2cClients) {
+                    const client = i2cClients[clientId];
+                    const statusClass = client.is_active ? 'status-connected' : 'status-disconnected';
+                    const statusText = client.is_active ? 'Active' : 'Inactive';
+                    const statusIcon = client.is_active ? 'check-circle' : 'x-circle';
+
+                    html += `
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div>
+                                        <i class="bi bi-cpu me-2"></i>
+                                        ${client.client_id}
+                                    </div>
+                                    <span class="${statusClass}">
+                                        <i class="bi bi-${statusIcon} me-1"></i>
+                                        ${statusText}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>Bus ID:</strong> ${client.bus_id || 'N/A'}
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Last Message:</strong><br>
+                                        <small>${client.message || 'N/A'}</small>
+                                    </div>
+
+                                    <div>
+                                        <strong>Sensors:</strong>
+                                        <div class="mt-2">
+                    `;
+
+                    if (client.sensors && client.sensors.length > 0) {
+                        html += '<div class="d-flex flex-wrap">';
+                        for (const sensorId of client.sensors) {
+                            const sensor = sensors[sensorId] || {};
+                            const sensorStatusClass = sensor.is_active !== false ? 'bg-success-light' : 'bg-danger-light';
+
+                            html += `
+                                <div class="sensor-badge ${sensorStatusClass}" onclick="showSensorDetails('${sensorId}')" style="cursor: pointer;">
+                                    ${sensorId.split('_').pop()}
+                                    <i class="bi bi-info-circle ms-1" style="font-size: 10px;"></i>
+                                </div>
+                            `;
+                        }
+                        html += '</div>';
+                    } else {
+                        html += '<p class="text-muted">No sensors connected</p>';
+                    }
+
+                    html += `
+                                        </div>
+                                    </div>
+                                    ${client.last_update ? `<div class="last-updated mt-3">Last updated: ${new Date(client.last_update * 1000).toLocaleString()}</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = html;
+            }
+
+            function renderSensors() {
+                const container = document.getElementById('sensors-container');
+
+                if (Object.keys(sensors).length === 0) {
+                    container.innerHTML = `
+                        <div class="col-12">
+                            <div class="no-data-message">
+                                <i class="bi bi-heart-pulse display-1 text-muted"></i>
+                                <p class="mt-3">No sensors available</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                for (const sensorId in sensors) {
+                    const sensor = sensors[sensorId];
+                    const statusClass = sensor.is_active !== false ? 'status-connected' : 'status-disconnected';
+                    const statusText = sensor.is_active !== false ? 'Active' : 'Inactive';
+                    const statusIcon = sensor.is_active !== false ? 'check-circle' : 'x-circle';
+
+                    // Get the client type and client ID
+                    const clientType = sensor.client_type || (sensorId.startsWith('ble') ? 'ble' : 'i2c');
+                    const clientId = sensor.client_id || sensorId.split('_').slice(0, 2).join('_');
+
+                    // Determine sensor type and icon
+                    const sensorType = sensor.sensor_type || sensorId.split('_').pop();
+                    let sensorIcon = 'cpu';
+
+                    switch(sensorType) {
+                        case 'heart_rate':
+                            sensorIcon = 'heart-pulse';
+                            break;
+                        case 'ecg':
+                            sensorIcon = 'activity';
+                            break;
+                        case 'temperature':
+                            sensorIcon = 'thermometer';
+                            break;
+                        case 'accelerometer':
+                            sensorIcon = 'arrows-move';
+                            break;
+                        case 'environment':
+                            sensorIcon = 'cloud';
+                            break;
+                        case 'oximeter':
+                        case 'spo2':
+                            sensorIcon = 'lungs';
+                            break;
+                        case 'ppg':
+                            sensorIcon = 'droplet';
+                            break;
+                    }
+
+                    // Check if this sensor has batch time_series
+                    const hasBatch = sensor.is_batch || sensor.batch_data;
+                    const batchSize = sensor.batch_size || (sensor.batch_data && sensor.batch_data.timestamps ? sensor.batch_data.timestamps.length : 0);
+                    const batchBadge = hasBatch ?
+                        `<span class="badge bg-info" title="Batch data available">
+                            <i class="bi bi-collection me-1"></i> ${batchSize} samples
+                        </span>` : '';
+
+                    // Check if this sensor is triggerable
+                    const isTriggerable = ['ecg', 'spo2'].includes(sensorType.toLowerCase());
+                    const triggerBadge = isTriggerable ?
+                        `<span class="badge bg-primary cursor-pointer" onclick="triggerSensorMeasurement('${sensorId}'); event.stopPropagation();" title="Trigger measurement">
+                            <i class="bi bi-play-fill me-1"></i> Trigger
+                        </span>` : '';
+
+                    html += `
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100"
+                                 data-sensor-id="${sensorId}"
+                                 data-sensor-type="${sensorType}"
+                                 data-sensor-name="${sensor.sensor_name || ''}"
+                                 data-client-type="${clientType}"
+                                 data-is-active="${sensor.is_active !== false}">
+                                <div class="card-header">
+                                    <div>
+                                        <i class="bi bi-${sensorIcon} me-2"></i>
+                                        ${sensor.sensor_name || sensorId}
+                                    </div>
+                                    <span class="${statusClass}">
+                                        <i class="bi bi-${statusIcon} me-1"></i>
+                                        ${statusText}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div>
+                                            <strong>Sensor ID:</strong><br>
+                                            <small>${sensorId}</small>
+                                        </div>
+                                        <div>
+                                            <strong>Type:</strong><br>
+                                            ${sensorType}
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <strong>Client:</strong>
+                                        <span class="badge bg-${clientType === 'ble' ? 'primary' : 'info'}">
+                                            ${clientType.toUpperCase()}
+                                        </span>
+                                        ${clientId}
+                                    </div>
+                    `;
+
+                    // Add metadata if available
+                    if (sensor.manufacturer || sensor.model) {
+                        html += `
+                            <div class="mb-3">
+                                <strong>Hardware:</strong><br>
+                                ${sensor.manufacturer || 'Unknown'} ${sensor.model || ''}
+                            </div>
+                        `;
+                    }
+
+                    // Add last time_series if available
+                    if (sensor.last_data) {
+                        let dataPreview = '';
+
+                        if (sensor.last_data.values) {
+                            const values = sensor.last_data.values;
+
+                            for (const key in values) {
+                                let value = values[key];
+
+                                // Format the value based on known sensor types
+                                if (sensorType === 'heart_rate' && key.includes('Heart Rate')) {
+                                    value = `${value} BPM`;
+                                } else if (sensorType === 'spo2' && key.includes('SpO2')) {
+                                    value = `${value}%`;
+                                } else if (sensorType === 'temperature' && key.includes('Temperature')) {
+                                    value = `${value}°C`;
+                                }
+
+                                dataPreview += `<div><strong>${key}:</strong> ${value}</div>`;
+                            }
+                        } else {
+                            dataPreview = '<small>Complex data available</small>';
+                        }
+
+                        html += `
+                            <div class="mb-3">
+                                <strong>Latest Readings:</strong>
+                                <div class="mt-1">
+                                    ${dataPreview}
+                                </div>
+                                <div class="mt-2 d-flex gap-2">
+                                    ${batchBadge}
+                                    ${triggerBadge}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // No time_series yet, but still show trigger badge if applicable
+                        if (isTriggerable) {
+                            html += `
+                                <div class="mb-3">
+                                    <strong>Measurements:</strong>
+                                    <div class="mt-2">
+                                        ${triggerBadge}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    if (sensor.inactive_minutes) {
+                        html += `
+                            <div class="alert alert-warning p-2 mb-3" role="alert">
+                                <small>
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                    Inactive for ${sensor.inactive_minutes.toFixed(1)} minutes
+                                </small>
+                            </div>
+                        `;
+                    }
+
+                    html += `
+                                    <div class="mt-auto">
+                                        <button class="btn btn-sm btn-primary w-100" onclick="showSensorDetails('${sensorId}')">
+                                            <i class="bi bi-info-circle me-1"></i> Details
+                                        </button>
+                                    </div>
+
+                                    ${sensor.last_update ? `<div class="last-updated mt-3">Updated: ${new Date(sensor.last_update * 1000).toLocaleString()}</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = html;
+            }
+
+            function addRecentUpdate(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                recentUpdates.unshift({ timestamp, message });
+
+                // Keep only the latest 20 updates
+                if (recentUpdates.length > 50) {
+                    recentUpdates.pop();
+                }
+
+                renderRecentUpdates();
+            }
+
+            function renderRecentUpdates() {
+                const container = document.getElementById('recent-updates');
+
+                if (recentUpdates.length === 0) {
+                    container.innerHTML = `
+                        <div class="no-data-message">
+                            <i class="bi bi-clock-history display-3 text-muted"></i>
+                            <p class="mt-3">No recent activity</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '<div class="list-group">';
+                for (const update of recentUpdates) {
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">${update.timestamp}</small>
+                            </div>
+                            <div class="mt-1">${update.message}</div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+
+                container.innerHTML = html;
+            }
+
+            function updateDashboardCounts() {
+                // BLE client counts
+                const bleClientCount = Object.keys(bleClients).length;
+                const bleConnectedCount = Object.values(bleClients).filter(c => c.is_connected).length;
+                const bleDisconnectedCount = bleClientCount - bleConnectedCount;
+
+                document.getElementById('ble-client-count').textContent = bleClientCount;
+                document.getElementById('ble-connected-count').textContent = bleConnectedCount;
+
+                // I2C client counts
+                const i2cClientCount = Object.keys(i2cClients).length;
+                const i2cActiveCount = Object.values(i2cClients).filter(c => c.is_active).length;
+                const i2cInactiveCount = i2cClientCount - i2cActiveCount;
+
+                document.getElementById('i2c-client-count').textContent = i2cClientCount;
+                document.getElementById('i2c-active-count').textContent = i2cActiveCount;
+
+                // Sensor counts
+                const totalSensorCount = Object.keys(sensors).length;
+                const activeSensorCount = Object.values(sensors).filter(s => s.is_active !== false).length;
+                const inactiveSensorCount = totalSensorCount - activeSensorCount;
+                const bleSensorCount = Object.values(sensors).filter(s => s.client_type === 'ble' || (s.sensor_id && s.sensor_id.startsWith('ble'))).length;
+                const i2cSensorCount = Object.values(sensors).filter(s => s.client_type === 'i2c' || (s.sensor_id && s.sensor_id.startsWith('i2c'))).length;
+
+                document.getElementById('total-sensor-count').textContent = totalSensorCount;
+                document.getElementById('active-sensor-count').textContent = activeSensorCount;
+                document.getElementById('inactive-sensor-count').textContent = inactiveSensorCount;
+                document.getElementById('ble-sensor-count').textContent = bleSensorCount;
+                document.getElementById('i2c-sensor-count').textContent = i2cSensorCount;
+
+                // Also update the triggerable sensors widget
+                renderTriggerableSensorsWidget();
+            }
+
+            function updateLatestSensorTable() {
+                const table = document.getElementById('latestSensorTable');
+                const tbody = table.querySelector('tbody');
+
+                if (Object.keys(sensors).length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No sensor data available</td></tr>';
+                    return;
+                }
+
+                // Sort sensors by last update time (most recent first)
+                const sortedSensors = Object.values(sensors).sort((a, b) => {
+                    return (b.last_update || 0) - (a.last_update || 0);
+                });
+
+                // Take only the 5 most recent
+                const recentSensors = sortedSensors.slice(0, 5);
+
+                let html = '';
+                for (const sensor of recentSensors) {
+                    const statusClass = sensor.is_active !== false ? 'text-success' : 'text-danger';
+                    const statusIcon = sensor.is_active !== false ? 'check-circle' : 'x-circle';
+
+                    // Check if this is batch time_series
+                    const hasBatch = sensor.is_batch || sensor.batch_data;
+                    const batchBadge = hasBatch ?
+                        `<span class="badge bg-info ms-2" title="Batch data available">
+                            <i class="bi bi-collection"></i>
+                        </span>` : '';
+
+                    let lastValue = 'No data';
+                    if (sensor.last_data && sensor.last_data.values) {
+                        const values = sensor.last_data.values;
+                        const keys = Object.keys(values);
+                        if (keys.length > 0) {
+                            lastValue = `${keys[0]}: ${values[keys[0]]}`;
+                        }
+                    }
+
+                    html += `
+                        <tr>
+                            <td>
+                                <a href="#" onclick="showSensorDetails('${sensor.sensor_id}'); return false;">
+                                    ${sensor.sensor_id}
+                                </a>
+                                ${batchBadge}
+                            </td>
+                            <td>${sensor.sensor_type || sensor.sensor_id?.split('_').pop() || 'Unknown'}</td>
+                            <td class="${statusClass}">
+                                <i class="bi bi-${statusIcon}"></i>
+                                ${sensor.is_active !== false ? 'Active' : 'Inactive'}
+                            </td>
+                            <td>${lastValue}</td>
+                            <td>
+                                ${sensor.last_update ? new Date(sensor.last_update * 1000).toLocaleTimeString() : 'Never'}
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                tbody.innerHTML = html;
+            }
+
+            function filterSensors(filter) {
+                const sensorCards = document.querySelectorAll('#sensors-container .card');
+
+                sensorCards.forEach(card => {
+                    const clientType = card.getAttribute('data-client-type');
+                    const isActive = card.getAttribute('data-is-active') === 'true';
+
+                    let shouldShow = false;
+
+                    switch (filter) {
+                        case 'all':
+                            shouldShow = true;
+                            break;
+                        case 'ble':
+                            shouldShow = clientType === 'ble';
+                            break;
+                        case 'i2c':
+                            shouldShow = clientType === 'i2c';
+                            break;
+                        case 'active':
+                            shouldShow = isActive;
+                            break;
+                        case 'inactive':
+                            shouldShow = !isActive;
+                            break;
+                    }
+
+                    card.closest('.col-lg-4').style.display = shouldShow ? '' : 'none';
+                });
+            }
+
+            function initCharts() {
+                // Sensor Activity Chart
+                const sensorActivityCtx = document.getElementById('sensorActivityChart').getContext('2d');
+                sensorActivityChart = new Chart(sensorActivityCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Array(24).fill(0).map((_, i) => `${i}h`),
+                        datasets: [
+                            {
+                                label: 'Active Sensors',
+                                data: Array(24).fill(0),
+                                borderColor: '#28a745',
+                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Connection Status Chart
+                const connectionStatusCtx = document.getElementById('connectionStatusChart').getContext('2d');
+                connectionStatusChart = new Chart(connectionStatusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['BLE Connected', 'BLE Disconnected', 'I2C Active', 'I2C Inactive'],
+                        datasets: [
+                            {
+                                data: [0, 0, 0, 0],
+                                backgroundColor: [
+                                    '#28a745',  // BLE Connected - green
+                                    '#dc3545',  // BLE Disconnected - red
+                                    '#17a2b8',  // I2C Active - blue
+                                    '#ffc107'   // I2C Inactive - yellow
+                                ],
+                                borderWidth: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%'
+                    }
+                });
+            }
+
+            function updateCharts() {
+                // Update Connection Status Chart
+                const bleClientCount = Object.keys(bleClients).length;
+                const bleConnectedCount = Object.values(bleClients).filter(c => c.is_connected).length;
+                const bleDisconnectedCount = bleClientCount - bleConnectedCount;
+
+                const i2cClientCount = Object.keys(i2cClients).length;
+                const i2cActiveCount = Object.values(i2cClients).filter(c => c.is_active).length;
+                const i2cInactiveCount = i2cClientCount - i2cActiveCount;
+
+                connectionStatusChart.data.datasets[0].data = [
+                    bleConnectedCount,
+                    bleDisconnectedCount,
+                    i2cActiveCount,
+                    i2cInactiveCount
+                ];
+                connectionStatusChart.update();
+
+                // For Sensor Activity Chart, we'll just simulate time_series for now
+                // In a real application, you would use actual historical time_series
+                const activeSensorCount = Object.values(sensors).filter(s => s.is_active !== false).length;
+                const randomData = Array(24).fill(0).map(() => Math.max(0, activeSensorCount + Math.floor(Math.random() * 5 - 2)));
+                randomData[23] = activeSensorCount; // Current hour is actual count
+
+                sensorActivityChart.data.datasets[0].data = randomData;
+                sensorActivityChart.update();
+            }
+
+            // Function to trigger a sensor measurement
+            function triggerSensorMeasurement(sensorId) {
+                // Show loading spinner in the trigger button
+                const triggerBtns = document.querySelectorAll(`.trigger-btn, .trigger-sensor-btn[data-sensor-id="${sensorId}"]`);
+
+                triggerBtns.forEach(btn => {
+                    const originalContent = btn.innerHTML;
+                    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Triggering...`;
+                    btn.disabled = true;
+
+                    // Store original content to restore later
+                    btn.setAttribute('data-original-content', originalContent);
+                });
+
+                // Make API call to trigger measurement
+                fetch(`/api/sensors/${sensorId}/trigger`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Show toast notification with result
+                    const toastContainer = document.getElementById('toast-container');
+                    const toastId = `toast-${Date.now()}`;
+                    const toastHtml = `
+                        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header ${data.success ? 'bg-success text-white' : 'bg-danger text-white'}">
+                                <i class="bi ${data.success ? 'bi-check-circle' : 'bi-exclamation-triangle'} me-2"></i>
+                                <strong class="me-auto">Sensor Trigger</strong>
+                                <small>Just now</small>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                            <div class="toast-body">
+                                ${data.message}
+                            </div>
+                        </div>
+                    `;
+
+                    toastContainer.innerHTML += toastHtml;
+                    const toastElement = new bootstrap.Toast(document.getElementById(toastId));
+                    toastElement.show();
+
+                    // Add to recent activity (if not already added by the server)
+                    addRecentUpdate(`Triggered measurement for sensor ${sensorId}: ${data.success ? 'Success' : 'Failed'}`);
+
+                    // Restore buttons
+                    setTimeout(() => {
+                        triggerBtns.forEach(btn => {
+                            btn.innerHTML = btn.getAttribute('data-original-content');
+                            btn.disabled = false;
+                        });
+                    }, 1000);
+                })
+                .catch(error => {
+                    console.error('Error triggering measurement:', error);
+
+                    // Restore buttons
+                    triggerBtns.forEach(btn => {
+                        btn.innerHTML = btn.getAttribute('data-original-content');
+                        btn.disabled = false;
+                    });
+
+                    // Show error toast
+                    const toastContainer = document.getElementById('toast-container');
+                    const toastId = `toast-${Date.now()}`;
+                    const toastHtml = `
+                        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header bg-danger text-white">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                <strong class="me-auto">Error</strong>
+                                <small>Just now</small>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                            <div class="toast-body">
+                                Failed to trigger measurement: Network error
+                            </div>
+                        </div>
+                    `;
+
+                    toastContainer.innerHTML += toastHtml;
+                    const toastElement = new bootstrap.Toast(document.getElementById(toastId));
+                    toastElement.show();
+                });
+            }
+
+            // Function to render triggerable sensors widget
+            function renderTriggerableSensorsWidget() {
+                // Add a new component to the dashboard tab
+                const dashboardTab = document.getElementById('dashboard');
+
+                // Check if our widget already exists
+                let triggerableSensorsWidget = document.getElementById('triggerable-sensors-widget');
+
+                if (!triggerableSensorsWidget) {
+                    // Create the widget section
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'row mb-4';
+                    rowDiv.innerHTML = `
+                        <div class="col-12">
+                            <div class="card" id="triggerable-sensors-widget">
+                                <div class="card-header">
+                                    <span>On-Demand Sensors</span>
+                                    <div class="text-muted small">Trigger measurements on ECG and SpO2 sensors</div>
+                                </div>
+                                <div class="card-body" id="triggerable-sensors-container">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading triggerable sensors...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Insert after charts row
+                    const chartsRow = dashboardTab.querySelector('.row:nth-child(2)');
+                    if (chartsRow) {
+                        chartsRow.after(rowDiv);
+                    } else {
+                        // If charts row doesn't exist, just append to the dashboard tab
+                        dashboardTab.appendChild(rowDiv);
+                    }
+
+                    // Now the widget exists in the DOM
+                    triggerableSensorsWidget = document.getElementById('triggerable-sensors-widget');
+                }
+
+                // Get all sensors that are triggerable (ECG and SpO2)
+                const triggerableSensors = Object.entries(sensors).filter(([id, sensor]) => {
+                    const sensorType = sensor.sensor_type || id.split('_').pop();
+                    return ['ecg', 'spo2'].includes(sensorType.toLowerCase());
+                });
+
+                // Get the container
+                const container = document.getElementById('triggerable-sensors-container');
+
+                if (triggerableSensors.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-3">
+                            <i class="bi bi-slash-circle display-3 text-muted"></i>
+                            <p class="mt-3">No triggerable sensors available</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Build the HTML for the triggerable sensors
+                let html = '<div class="row">';
+
+                triggerableSensors.forEach(([sensorId, sensor]) => {
+                    const sensorType = sensor.sensor_type || sensorId.split('_').pop();
+                    const sensorName = sensor.sensor_name || sensorId;
+
+                    // Choose icon based on sensor type
+                    let sensorIcon = sensorType.toLowerCase() === 'ecg' ? 'activity' : 'lungs';
+                    let bgColorClass = sensorType.toLowerCase() === 'ecg' ? 'bg-info-light' : 'bg-primary-light';
+
+                    html += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="stat-icon ${bgColorClass} me-3">
+                                            <i class="bi bi-${sensorIcon}"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="mb-0">${sensorName}</h5>
+                                            <p class="text-muted mb-0">${sensorType.toUpperCase()} Sensor</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        ${sensor.last_data ? `
+                                            <div class="alert alert-light p-2 mb-2">
+                                                <strong>Last Reading:</strong>
+                                                ${getLastReadingText(sensor)}
+                                            </div>
+                                        ` : `
+                                            <div class="alert alert-light p-2 mb-2">
+                                                <em>No readings yet</em>
+                                            </div>
+                                        `}
+
+                                        <div class="text-end">
+                                            <small class="text-muted">
+                                                ${sensor.last_update ? `Updated: ${new Date(sensor.last_update * 1000).toLocaleTimeString()}` : 'Never updated'}
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary trigger-sensor-btn" data-sensor-id="${sensorId}">
+                                            <i class="bi bi-play-fill"></i> Trigger ${sensorType.toUpperCase()} Measurement
+                                        </button>
+                                        <button class="btn btn-outline-secondary" onclick="showSensorDetails('${sensorId}')">
+                                            <i class="bi bi-info-circle"></i> View Details
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+
+                // Add event listeners to the trigger buttons
+                document.querySelectorAll('.trigger-sensor-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const sensorId = this.getAttribute('data-sensor-id');
+                        triggerSensorMeasurement(sensorId);
+                    });
+                });
+            }
+
+            // Helper function to get a readable text for the last reading
+            function getLastReadingText(sensor) {
+                if (!sensor.last_data || !sensor.last_data.values) {
+                    return 'No data';
+                }
+
+                const sensorType = sensor.sensor_type || sensor.sensor_id?.split('_').pop() || 'Unknown';
+                const values = sensor.last_data.values;
+
+                if (sensorType.toLowerCase() === 'ecg') {
+                    if (values.status) {
+                        return values.status;
+                    } else if (values.mv !== undefined) {
+                        return `${values.mv} mV`;
+                    }
+                } else if (sensorType.toLowerCase() === 'spo2') {
+                    if (values.value !== undefined) {
+                        return `${values.value}% oxygen saturation`;
+                    } else if (values.status) {
+                        return values.status;
+                    }
+                }
+
+                // Generic fallback
+                const keys = Object.keys(values);
+                if (keys.length > 0) {
+                    return `${keys[0]}: ${values[keys[0]]}`;
+                }
+
+                return 'Data available';
+            }
+
+            // Make functions available globally
+            window.sensors = sensors;
+            window.triggerSensorMeasurement = triggerSensorMeasurement;
+        });
+
+        // Global function to show sensor details modal
+        function showSensorDetails(sensorId) {
+            const sensor = window.sensors[sensorId];
+            if (!sensor) return;
+
+            const modal = document.getElementById('sensorDetailsModal');
+            modal.setAttribute('data-sensor-id', sensorId);
+
+            // Update modal title
+            document.getElementById('sensorDetailsModalLabel').textContent = sensor.sensor_name || sensorId;
+
+            // Check if this is a triggerable sensor type
+            const sensorType = sensor.sensor_type || sensorId.split('_').pop();
+            const isTriggerable = ['ecg', 'spo2'].includes(sensorType.toLowerCase());
+
+            // Add trigger button to the modal header if applicable
+            const modalHeader = modal.querySelector('.modal-header');
+            // Remove existing trigger button if any
+            const existingTriggerBtn = modalHeader.querySelector('.trigger-btn');
+            if (existingTriggerBtn) {
+                existingTriggerBtn.remove();
+            }
+
+            // Add new trigger button for appropriate sensors
+            if (isTriggerable) {
+                const triggerBtn = document.createElement('button');
+                triggerBtn.className = 'btn btn-primary trigger-btn me-2';
+                triggerBtn.innerHTML = `<i class="bi bi-play-fill"></i> Trigger ${sensorType.toUpperCase()} Measurement`;
+                triggerBtn.onclick = function() {
+                    triggerSensorMeasurement(sensorId);
+                };
+                // Insert before the close button
+                modalHeader.insertBefore(triggerBtn, modalHeader.querySelector('.btn-close'));
+            }
+
+            // Update overview tab
+            let overviewHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tr>
+                                <td><strong>Sensor ID:</strong></td>
+                                <td>${sensorId}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Sensor Type:</strong></td>
+                                <td>${sensor.sensor_type || sensorId.split('_').pop()}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td class="${sensor.is_active !== false ? 'text-success' : 'text-danger'}">
+                                    ${sensor.is_active !== false ? 'Active' : 'Inactive'}
+                                    ${sensor.inactive_minutes ? ` (Inactive for ${sensor.inactive_minutes.toFixed(1)} min)` : ''}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Client Type:</strong></td>
+                                <td>${sensor.client_type || (sensorId.startsWith('ble') ? 'BLE' : 'I2C')}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Client ID:</strong></td>
+                                <td>${sensor.client_id || sensorId.split('_').slice(0, 2).join('_')}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">Latest Readings</div>
+                            <div class="card-body">
+                                ${getSensorDataDisplay(sensor)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add trigger button for the overview tab as well for ECG and SpO2
+            if (isTriggerable) {
+                overviewHtml += `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">Measurement Control</div>
+                                <div class="card-body">
+                                    <p>This sensor supports on-demand measurements.</p>
+                                    <button class="btn btn-primary trigger-sensor-btn" data-sensor-id="${sensorId}">
+                                        <i class="bi bi-play-fill"></i> Trigger ${sensorType.toUpperCase()} Measurement
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('sensor-overview-content').innerHTML = overviewHtml;
+
+            // Add event listener to the new button
+            if (isTriggerable) {
+                document.querySelector('.trigger-sensor-btn').addEventListener('click', function() {
+                    const sensorId = this.getAttribute('data-sensor-id');
+                    triggerSensorMeasurement(sensorId);
+                });
+            }
+
+            // Update metadata tab
+            let metadataHtml = '';
+
+            if (sensor.manufacturer || sensor.model || sensor.firmware_version ||
+                sensor.hardware_version || sensor.description || sensor.measurement_units) {
+
+                metadataHtml += `
+                    <table class="metadata-table">
+                        ${sensor.manufacturer ? `
+                            <tr>
+                                <td>Manufacturer</td>
+                                <td>${sensor.manufacturer}</td>
+                            </tr>` : ''}
+                        ${sensor.model ? `
+                            <tr>
+                                <td>Model</td>
+                                <td>${sensor.model}</td>
+                            </tr>` : ''}
+                        ${sensor.firmware_version ? `
+                            <tr>
+                                <td>Firmware Version</td>
+                                <td>${sensor.firmware_version}</td>
+                            </tr>` : ''}
+                        ${sensor.hardware_version ? `
+                            <tr>
+                                <td>Hardware Version</td>
+                                <td>${sensor.hardware_version}</td>
+                            </tr>` : ''}
+                        ${sensor.location ? `
+                            <tr>
+                                <td>Location</td>
+                                <td>${sensor.location}</td>
+                            </tr>` : ''}
+                        ${sensor.measurement_units ? `
+                            <tr>
+                                <td>Measurement Units</td>
+                                <td>${sensor.measurement_units}</td>
+                            </tr>` : ''}
+                        ${sensor.patient_id ? `
+                            <tr>
+                                <td>Patient ID</td>
+                                <td>${sensor.patient_id}</td>
+                            </tr>` : ''}
+                    </table>
+                    ${sensor.description ? `
+                        <div class="mt-3">
+                            <strong>Description:</strong>
+                            <p class="mt-2">${sensor.description}</p>
+                        </div>` : ''}
+                `;
+            } else {
+                metadataHtml = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        No metadata has been received for this sensor yet.
+                    </div>
+                `;
+            }
+
+            document.getElementById('sensor-metadata-content').innerHTML = metadataHtml;
+
+            // Update time_series tab with enhanced batch time_series handling
+            updateSensorDataTab(sensor);
+
+            // Show the modal
+            const modalElement = bootstrap.Modal.getOrCreateInstance(modal);
+            modalElement.show();
+        }
+
+        function updateSensorDataTab(sensor) {
+            let dataHtml = '';
+
+            if (sensor.last_data) {
+                // Check if we have batch time_series
+                const isBatch = sensor.is_batch || sensor.batch_data;
+
+                if (isBatch) {
+                    const batchData = sensor.batch_data || {};
+                    const timestamps = batchData.timestamps || [];
+                    const valuesList = batchData.values_list || [];
+
+                    if (timestamps.length > 0 && valuesList.length > 0) {
+                        // Create container for ECG chart if this is an ECG sensor
+                        if (sensor.sensor_type === 'ecg' || sensor.sensor_id.includes('_ecg')) {
+                            dataHtml = `
+                                <div class="mb-3">
+                                    <h5>ECG Batch Data Visualization</h5>
+                                    <p class="text-muted small">Showing ${timestamps.length} readings</p>
+                                    <div style="height: 250px;">
+                                        <canvas id="ecgBatchChart"></canvas>
+                                    </div>
+                                </div>
+                            `;
+
+                            // After the modal is shown and this HTML is rendered, initialize the chart
+                            setTimeout(function() {
+                                const ecgValues = valuesList.map(item => item.ECG);
+                                const timeLabels = timestamps.map((ts, index) => index); // Simple index labels
+
+                                const ctx = document.getElementById('ecgBatchChart').getContext('2d');
+                                new Chart(ctx, {
+                                    type: 'line',
+                                    data: {
+                                        labels: timeLabels,
+                                        datasets: [{
+                                            label: 'ECG Voltage',
+                                            data: ecgValues,
+                                            borderColor: '#dc3545',
+                                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                                            borderWidth: 2,
+                                            tension: 0.2,
+                                            fill: true,
+                                            pointRadius: 0
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        scales: {
+                                            y: {
+                                                title: {
+                                                    display: true,
+                                                    text: 'Voltage (mV)'
+                                                }
+                                            },
+                                            x: {
+                                                title: {
+                                                    display: true,
+                                                    text: 'Sample'
+                                                }
+                                            }
+                                        },
+                                        plugins: {
+                                            title: {
+                                                display: true,
+                                                text: 'ECG Waveform'
+                                            },
+                                            tooltip: {
+                                                mode: 'index',
+                                                intersect: false
+                                            }
+                                        }
+                                    }
+                                });
+                            }, 100);
+                        }
+
+                        // Add batch time_series details
+                        dataHtml += `
+                            <div class="mb-3">
+                                <h5>Batch Data Details</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Number of samples</strong></td>
+                                            <td>${timestamps.length}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Data rate</strong></td>
+                                            <td>250 Hz (clinical ECG standard)</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Time span</strong></td>
+                                            <td>${(timestamps.length / 250).toFixed(2)} seconds</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+
+                        // Also show the raw time_series (collapsed by default)
+                        dataHtml += `
+                            <div class="mt-3">
+                                <h5>Raw Batch Data</h5>
+                                <div class="data-container">
+                                    <pre class="data-json">${JSON.stringify(sensor.batch_data || sensor.last_data, null, 2)}</pre>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        dataHtml = `
+                            <div class="data-container">
+                                <pre class="data-json">${JSON.stringify(sensor.last_data, null, 2)}</pre>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Regular non-batch time_series
+                    dataHtml = `
+                        <div class="data-container">
+                            <pre class="data-json">${JSON.stringify(sensor.last_data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } else {
+                dataHtml = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        No data has been received from this sensor yet.
+                    </div>
+                `;
+            }
+
+            document.getElementById('sensor-data-content').innerHTML = dataHtml;
+        }
+
+        function updateSensorDetailsModal(sensorId) {
+            const sensor = window.sensors[sensorId];
+            if (!sensor) return;
+
+            const modal = document.getElementById('sensorDetailsModal');
+            if (modal.getAttribute('data-sensor-id') !== sensorId) return;
+
+            // Update the overview tab
+            document.getElementById('sensor-overview-content').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tr>
+                                <td><strong>Sensor ID:</strong></td>
+                                <td>${sensorId}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Sensor Type:</strong></td>
+                                <td>${sensor.sensor_type || sensorId.split('_').pop()}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td class="${sensor.is_active !== false ? 'text-success' : 'text-danger'}">
+                                    ${sensor.is_active !== false ? 'Active' : 'Inactive'}
+                                    ${sensor.inactive_minutes ? ` (Inactive for ${sensor.inactive_minutes.toFixed(1)} min)` : ''}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Client Type:</strong></td>
+                                <td>${sensor.client_type || (sensorId.startsWith('ble') ? 'BLE' : 'I2C')}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Client ID:</strong></td>
+                                <td>${sensor.client_id || sensorId.split('_').slice(0, 2).join('_')}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">Latest Readings</div>
+                            <div class="card-body">
+                                ${getSensorDataDisplay(sensor)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Update the time_series tab
+            updateSensorDataTab(sensor);
+        }
+
+        function getSensorDataDisplay(sensor) {
+            if (!sensor.last_data) {
+                return '<div class="text-muted">No data available</div>';
+            }
+
+            let html = '';
+
+            // Check if we have values in the standard format
+            if (sensor.last_data.values) {
+                const values = sensor.last_data.values;
+                const timestamp = sensor.last_data.timestamp;
+
+                html += '<table class="table table-sm">';
+
+                for (const key in values) {
+                    let value = values[key];
+                    // Format value based on sensor type
+                    let formattedValue = value;
+
+                    if (key.includes('Heart Rate')) {
+                        formattedValue = `${value} BPM`;
+                    } else if (key.includes('SpO2')) {
+                        formattedValue = `${value}%`;
+                    } else if (key.includes('Temperature')) {
+                        formattedValue = `${value}°C`;
+                    } else if (key.includes('ECG')) {
+                        formattedValue = `${value} mV`;
+                    }
+
+                    html += `
+                        <tr>
+                            <td>${key}</td>
+                            <td class="text-end">${formattedValue}</td>
+                        </tr>
+                    `;
+                }
+
+                html += '</table>';
+
+                if (timestamp) {
+                    const date = new Date(timestamp / 1000000); // Convert nanoseconds to milliseconds
+                    html += `<div class="text-muted small mt-2">Timestamp: ${date.toLocaleString()}</div>`;
+                }
+
+                // If there's batch time_series available, show a notice
+                const isBatch = sensor.is_batch || sensor.batch_data;
+                if (isBatch) {
+                    const batchSize = sensor.batch_size || (sensor.batch_data && sensor.batch_data.timestamps ? sensor.batch_data.timestamps.length : 0);
+                    html += `
+                        <div class="alert alert-info mt-3 mb-0 p-2">
+                            <small>
+                                <i class="bi bi-info-circle me-1"></i>
+                                Batch data available (${batchSize} readings) - See Data tab for visualization
+                            </small>
+                        </div>
+                    `;
+                }
+
+                return html;
+            }
+
+            // Fallback for other time_series formats
+            return `
+                <div class="text-muted">
+                    <p>Complex data format</p>
+                    <small>See Data tab for detailed information</small>
+                </div>
+            `;
+        }
+
+        // Make sensors available globally for modal functions
+        window.sensors = {};
+    </script>
+</body>
+</html>
