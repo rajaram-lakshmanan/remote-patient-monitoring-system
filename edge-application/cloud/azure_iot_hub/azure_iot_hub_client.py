@@ -301,30 +301,38 @@ class AzureIoTHubClient:
                 handler = self._command_handlers.get(method_name)
                 if handler:
                     try:
-                        # Since the handler typically publish an event, there is no need to wait for the response
+                        # Since the handler typically publishes an event, there is no need to wait for the response
                         handler(method_name, payload)
+                        response_status = 200
+                        response_payload = { "success": True,
+                                             "message": f"Method {method_name} executed successfully" }
                     except Exception as e:
                         logger.error(f"Error in method handler for {method_name}: {e}")
                         response_status = 500
-                        response_payload = {"success": False, "message": f"Exception in method handler: {str(e)}"}
+                        response_payload = {
+                            "success": False,
+                            "message": f"Exception in method handler: {str(e)}"
+                        }
                 else:
                     logger.warning(f"No handler registered for method: {method_name}")
                     response_status = 404
-                    response_payload = {"success": False, "message": f"Method {method_name} not implemented"}
+                    response_payload = {
+                        "success": False,
+                        "message": f"Method {method_name} not implemented"
+                    }
 
-                # Send response
-                method_response = MethodResponse(request_id, response_status, json.dumps(response_payload))
+                method_response = MethodResponse(request_id, response_status, response_payload)
                 self._client.send_method_response(method_response)
 
         except Exception as e:
             logger.error(f"Error processing method request: {e}")
-
             try:
                 error_response = MethodResponse(
                     method_request.request_id,
                     500,
-                    json.dumps({"success": False, "message": f"Internal error: {str(e)}"})
+                    {"success": False, "message": f"Internal error: {str(e)}"}
                 )
                 self._client.send_method_response(error_response)
             except Exception as ex:
                 logger.error(f"Error sending error response: {ex}")
+
